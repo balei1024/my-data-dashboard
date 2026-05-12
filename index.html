@@ -36,12 +36,22 @@
                 <p class="text-xs text-slate-500">Brand & Payment Methods Dashboard</p>
             </div>
         </div>
-        <div class="flex items-center gap-4">
-            <button id="btn-demo" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors border border-slate-300">
-                <i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>加载示例数据
+        <div class="flex items-center gap-3">
+            <!-- New: Remote Refresh and Unbind Buttons (Hidden by default) -->
+            <button id="btn-refresh-url" class="hidden px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-sm font-medium rounded-lg transition-colors border border-emerald-200">
+                <i class="fa-solid fa-rotate mr-2"></i>拉取最新数据
             </button>
-            <label for="csv-upload" class="cursor-pointer px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
-                <i class="fa-solid fa-cloud-arrow-up mr-2"></i>上传完整 CSV
+            <button id="btn-clear-binding" class="hidden px-3 py-2 bg-red-50 hover:bg-red-100 text-red-500 text-sm font-medium rounded-lg transition-colors border border-red-200" title="解除绑定的数据源">
+                <i class="fa-solid fa-link-slash"></i> 解除绑定
+            </button>
+            
+            <div class="h-6 w-px bg-slate-300 mx-1"></div>
+
+            <button id="btn-demo" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors border border-slate-300">
+                <i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>加载示例
+            </button>
+            <label for="csv-upload" class="cursor-pointer px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm mb-0">
+                <i class="fa-solid fa-cloud-arrow-up mr-2"></i>本地上传
             </label>
             <input type="file" id="csv-upload" accept=".csv" class="hidden">
         </div>
@@ -56,16 +66,34 @@
     <main class="flex-1 overflow-y-auto p-6 bg-slate-50">
         
         <!-- Empty State / Upload Area -->
-        <div id="empty-state" class="flex flex-col items-center justify-center h-full text-center max-w-2xl mx-auto mt-10">
-            <div class="w-48 h-48 mb-6">
+        <div id="empty-state" class="flex flex-col items-center justify-center h-full text-center max-w-2xl mx-auto mt-4">
+            <div class="w-32 h-32 mb-6">
                 <svg class="w-full h-full text-blue-100" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg>
             </div>
             <h2 class="text-2xl font-bold text-slate-700 mb-2">等待数据源</h2>
-            <p class="text-slate-500 mb-8">请点击右上角上传您的 `.csv` 报表文件，或者加载示例数据以预览分析看板的效果。数据将在您的浏览器本地进行安全解析。</p>
+            <p class="text-slate-500 mb-6">在下方绑定您的 GitHub 仓库数据直链，或直接上传本地 `.csv` 文件。绑定后，看板每次打开都会自动拉取最新数据。</p>
             
-            <div class="flex gap-4">
-                <label for="csv-upload-large" class="cursor-pointer px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium rounded-xl transition-colors shadow-md">
-                    选择文件并分析
+            <!-- GitHub URL Binding Input -->
+            <div class="w-full max-w-lg bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6">
+                <label class="block text-sm font-bold text-slate-700 text-left mb-3"><i class="fa-brands fa-github mr-2"></i>绑定远程 GitHub CSV 数据源</label>
+                <div class="flex gap-2">
+                    <input type="url" id="github-url-input" placeholder="输入类似 https://raw.githubusercontent.com/... 的链接" class="flex-1 px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all">
+                    <button id="btn-fetch-url" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                        同步并绑定
+                    </button>
+                </div>
+                <div class="text-xs text-slate-500 mt-3 text-left leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <strong>💡 如何获取直链？</strong> 打开您的 GitHub 仓库中的 CSV 文件，点击右上角的 <strong>"Raw"</strong> 按钮，将浏览器地址栏的链接复制并粘贴到上方。
+                </div>
+            </div>
+
+            <div class="flex gap-4 items-center mt-2">
+                <span class="text-slate-400 text-sm">—— 或者 ——</span>
+            </div>
+
+            <div class="mt-6">
+                <label for="csv-upload-large" class="cursor-pointer px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium rounded-xl transition-colors shadow-md inline-block">
+                    选择本地文件上传分析
                 </label>
                 <input type="file" id="csv-upload-large" accept=".csv" class="hidden">
             </div>
@@ -76,7 +104,6 @@
             
             <!-- KPI Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Card 1 -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-slate-500 mb-1">总计覆盖品牌数</p>
@@ -86,7 +113,6 @@
                         <i class="fa-solid fa-tags text-xl"></i>
                     </div>
                 </div>
-                <!-- Card 2 -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-slate-500 mb-1">累计配置支付方式</p>
@@ -96,7 +122,6 @@
                         <i class="fa-solid fa-credit-card text-xl"></i>
                     </div>
                 </div>
-                <!-- Card 3 -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-slate-500 mb-1">活跃品牌 (已启用)</p>
@@ -106,7 +131,6 @@
                         <i class="fa-solid fa-circle-check text-xl"></i>
                     </div>
                 </div>
-                <!-- Card 4 -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-slate-500 mb-1">活跃支付 (已启用)</p>
@@ -164,23 +188,55 @@
 
     <!-- Script Logic -->
     <script>
-        // Store Chart instances for destroying before re-render
-        let charts = {
-            brands: null,
-            payments: null,
-            trend: null,
-            status: null
-        };
+        // Data and URL binding state
+        const DATA_URL_KEY = 'dashboard_csv_repo_url';
+        let charts = { brands: null, payments: null, trend: null, status: null };
 
         // UI Elements
         const emptyState = document.getElementById('empty-state');
         const dashboardContent = document.getElementById('dashboard-content');
         const notification = document.getElementById('notification');
+        
+        const urlInput = document.getElementById('github-url-input');
+        const btnFetchUrl = document.getElementById('btn-fetch-url');
+        const btnRefreshUrl = document.getElementById('btn-refresh-url');
+        const btnClearBinding = document.getElementById('btn-clear-binding');
 
-        // File Inputs
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUrl = localStorage.getItem(DATA_URL_KEY);
+            if (savedUrl) {
+                // If a URL is bound, fetch data automatically
+                fetchDataFromUrl(savedUrl, false);
+            }
+        });
+
+        // Event Listeners for File Upload
         document.getElementById('csv-upload').addEventListener('change', handleFileUpload);
         document.getElementById('csv-upload-large').addEventListener('change', handleFileUpload);
         document.getElementById('btn-demo').addEventListener('click', loadDemoData);
+
+        // Event Listeners for Remote Fetch
+        btnFetchUrl.addEventListener('click', () => {
+            const url = urlInput.value.trim();
+            if (url) {
+                fetchDataFromUrl(url, true); // true = save this url to localstorage
+            } else {
+                showNotification('请输入有效的 GitHub Raw 链接', true);
+            }
+        });
+
+        btnRefreshUrl.addEventListener('click', () => {
+            const savedUrl = localStorage.getItem(DATA_URL_KEY);
+            if (savedUrl) {
+                fetchDataFromUrl(savedUrl, false);
+            }
+        });
+
+        btnClearBinding.addEventListener('click', () => {
+            localStorage.removeItem(DATA_URL_KEY);
+            location.reload(); // Reload page to return to empty state
+        });
 
         // Chart default settings
         Chart.defaults.font.family = "'Inter', sans-serif";
@@ -191,11 +247,68 @@
 
         function showNotification(msg, isError = false) {
             notification.textContent = msg;
-            notification.className = `absolute top-6 left-1/2 transform -translate-x-1/2 z-50 text-white px-6 py-3 rounded-full shadow-lg text-sm font-medium transition-all duration-300 ${isError ? 'bg-red-500' : 'bg-slate-800'}`;
+            notification.className = `absolute top-6 left-1/2 transform -translate-x-1/2 z-50 text-white px-6 py-3 rounded-full shadow-lg text-sm font-medium transition-all duration-300 ${isError ? 'bg-red-500' : 'bg-emerald-500'}`;
             notification.classList.remove('hidden');
             setTimeout(() => {
                 notification.classList.add('hidden');
             }, 3000);
+        }
+
+        // Fetch Data from remote URL
+        function fetchDataFromUrl(url, saveUrl = false) {
+            // Update button states to show loading
+            const originalFetchText = btnFetchUrl.innerHTML;
+            btnFetchUrl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 同步中...';
+            btnFetchUrl.disabled = true;
+            
+            const originalRefreshText = btnRefreshUrl.innerHTML;
+            btnRefreshUrl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>拉取中...';
+            btnRefreshUrl.disabled = true;
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error('网络请求失败或文件不存在');
+                    return response.text();
+                })
+                .then(csvText => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            if(results.data && results.data.length > 0) {
+                                processData(results.data);
+                                showNotification(`成功从仓库同步 ${results.data.length} 条数据！`);
+                                
+                                // Save to localStorage if requested
+                                if (saveUrl) {
+                                    localStorage.setItem(DATA_URL_KEY, url);
+                                }
+                                
+                                // Show management buttons in header
+                                btnRefreshUrl.classList.remove('hidden');
+                                btnClearBinding.classList.remove('hidden');
+                            } else {
+                                showNotification('解析失败，远程CSV似乎为空', true);
+                            }
+                            resetButtons(originalFetchText, originalRefreshText);
+                        },
+                        error: function() {
+                            showNotification('CSV数据格式解析失败', true);
+                            resetButtons(originalFetchText, originalRefreshText);
+                        }
+                    });
+                })
+                .catch(error => {
+                    showNotification('获取数据失败: ' + error.message, true);
+                    resetButtons(originalFetchText, originalRefreshText);
+                });
+        }
+
+        function resetButtons(fetchText, refreshText) {
+            btnFetchUrl.innerHTML = fetchText || '同步并绑定';
+            btnFetchUrl.disabled = false;
+            btnRefreshUrl.innerHTML = refreshText || '<i class="fa-solid fa-rotate mr-2"></i>拉取最新数据';
+            btnRefreshUrl.disabled = false;
         }
 
         function handleFileUpload(event) {
@@ -208,7 +321,7 @@
                 complete: function(results) {
                     if(results.data && results.data.length > 0) {
                         processData(results.data);
-                        showNotification(`成功加载 ${results.data.length} 条数据！`);
+                        showNotification(`成功加载 ${results.data.length} 条本地数据！`);
                     } else {
                         showNotification('解析失败，CSV似乎为空', true);
                     }
@@ -217,30 +330,11 @@
                     showNotification('文件读取失败', true);
                 }
             });
-            // Reset input so the same file can be selected again
-            event.target.value = '';
+            event.target.value = ''; // Reset input
         }
 
         function loadDemoData() {
-            // Built-in demo data based on user snippet
-            const csvText = `brand_id,brand_name,create_time,品牌数据是否启用,payment_method_name,支付方式是否启用
-2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Coinpal- Gift Card,1
-2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,LinkAja wallet,1
-2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Doku ovo wallet,1
-2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Glocash_Ppro_Bancontact_iGV,1
-2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Glocash_Ppro_WeChatPay_iGV,1
-2.05228E+18,Claude,2026-05-07T06:42:50,1,Coinpal- Gift Card,1
-2.05228E+18,Claude,2026-05-07T06:42:50,1,LinkAja wallet,1
-115,World Of Warcraft US,2019-04-12T15:13:08,1,ApplePay,1
-115,World Of Warcraft US,2019-04-12T15:13:08,1,Epay-FPX-HongLeongBank,0
-115,World Of Warcraft US,2019-04-12T15:13:08,1,Bcashy,0
-115,World Of Warcraft US,2019-04-12T15:13:08,1,Epay-FPX-AmBank,0
-59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Epay-FPX-HongLeongBank,0
-59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Bcashy,0
-59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Glocash_Ppro_WeChatPay_iGV,1
-59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Epay-FPX-UOBBank,0
-60,Blizzard Store,2020-01-10T10:00:00,0,ApplePay,1
-60,Blizzard Store,2020-01-10T10:00:00,0,Bcashy,0`;
+            const csvText = `brand_id,brand_name,create_time,品牌数据是否启用,payment_method_name,支付方式是否启用\n2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Coinpal- Gift Card,1\n2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,LinkAja wallet,1\n2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Doku ovo wallet,1\n2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Glocash_Ppro_Bancontact_iGV,1\n2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Glocash_Ppro_WeChatPay_iGV,1\n2.05228E+18,Claude,2026-05-07T06:42:50,1,Coinpal- Gift Card,1\n2.05228E+18,Claude,2026-05-07T06:42:50,1,LinkAja wallet,1\n115,World Of Warcraft US,2019-04-12T15:13:08,1,ApplePay,1\n115,World Of Warcraft US,2019-04-12T15:13:08,1,Epay-FPX-HongLeongBank,0\n115,World Of Warcraft US,2019-04-12T15:13:08,1,Bcashy,0\n115,World Of Warcraft US,2019-04-12T15:13:08,1,Epay-FPX-AmBank,0\n59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Epay-FPX-HongLeongBank,0\n59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Bcashy,0\n59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Glocash_Ppro_WeChatPay_iGV,1\n59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Epay-FPX-UOBBank,0\n60,Blizzard Store,2020-01-10T10:00:00,0,ApplePay,1\n60,Blizzard Store,2020-01-10T10:00:00,0,Bcashy,0`;
 
             Papa.parse(csvText, {
                 header: true,
@@ -253,7 +347,6 @@
         }
 
         function processData(data) {
-            // Data aggregations
             const brandsSet = new Set();
             const paymentsSet = new Set();
             const activeBrandsSet = new Set();
@@ -272,43 +365,35 @@
                 const pActive = String(row['支付方式是否启用']).trim() === '1';
                 const cTime = row['create_time'] ? row['create_time'].substring(0, 7) : 'Unknown';
 
-                // Basic sets
                 brandsSet.add(bName);
                 paymentsSet.add(pName);
                 if(bActive) activeBrandsSet.add(bName);
                 if(pActive) activePaymentsSet.add(pName);
 
-                // Brand counting
                 if (!brandPaymentCount[bName]) brandPaymentCount[bName] = 0;
                 brandPaymentCount[bName]++;
 
-                // Payment counting
                 if (!paymentUsageCount[pName]) paymentUsageCount[pName] = 0;
                 paymentUsageCount[pName]++;
 
-                // Trend counting
                 if (cTime !== 'Unknown') {
                     if (!trendData[cTime]) trendData[cTime] = 0;
                     trendData[cTime]++;
                 }
 
-                // Status counting (Combined health)
                 if (bActive && pActive) statusEnabled++;
                 else statusDisabled++;
             });
 
-            // Update UI KPIs
             document.getElementById('kpi-brands').textContent = brandsSet.size;
             document.getElementById('kpi-payments').textContent = paymentsSet.size;
             document.getElementById('kpi-active-brands').textContent = activeBrandsSet.size;
             document.getElementById('kpi-active-payments').textContent = activePaymentsSet.size;
 
-            // Sort data for charts
             const topBrands = Object.entries(brandPaymentCount).sort((a,b) => b[1] - a[1]).slice(0, 10);
             const topPayments = Object.entries(paymentUsageCount).sort((a,b) => b[1] - a[1]).slice(0, 10);
             const sortedTrends = Object.entries(trendData).sort((a,b) => a[0].localeCompare(b[0]));
 
-            // Render Charts
             renderCharts({
                 brands: topBrands,
                 payments: topPayments,
@@ -316,16 +401,13 @@
                 status: [statusEnabled, statusDisabled]
             });
 
-            // Toggle Visibility
             emptyState.classList.add('hidden');
             dashboardContent.classList.remove('hidden');
         }
 
         function renderCharts(metrics) {
-            // Colors
             const primaryColors = ['#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#0ea5e9'];
             
-            // 1. Brands Bar Chart
             if (charts.brands) charts.brands.destroy();
             const ctxBrands = document.getElementById('chart-brands').getContext('2d');
             charts.brands = new Chart(ctxBrands, {
@@ -352,7 +434,6 @@
                 }
             });
 
-            // 2. Payments Doughnut Chart
             if (charts.payments) charts.payments.destroy();
             const ctxPayments = document.getElementById('chart-payments').getContext('2d');
             charts.payments = new Chart(ctxPayments, {
@@ -376,11 +457,8 @@
                 }
             });
 
-            // 3. Trend Line Chart
             if (charts.trend) charts.trend.destroy();
             const ctxTrend = document.getElementById('chart-trend').getContext('2d');
-            
-            // Create Gradient
             const gradient = ctxTrend.createLinearGradient(0, 0, 0, 300);
             gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
             gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
@@ -415,7 +493,6 @@
                 }
             });
 
-            // 4. Status Pie Chart
             if (charts.status) charts.status.destroy();
             const ctxStatus = document.getElementById('chart-status').getContext('2d');
             charts.status = new Chart(ctxStatus, {
