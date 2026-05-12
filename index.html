@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>品牌与支付配置数据分析看板</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="glass-panel shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center z-10 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2 rounded-lg">
+                <i class="fa-solid fa-chart-pie text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-slate-800">品牌与支付配置分析看板</h1>
+                <p class="text-xs text-slate-500">Brand & Payment Methods Dashboard</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="btn-demo" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors border border-slate-300">
+                <i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>加载示例数据
+            </button>
+            <label for="csv-upload" class="cursor-pointer px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                <i class="fa-solid fa-cloud-arrow-up mr-2"></i>上传完整 CSV
+            </label>
+            <input type="file" id="csv-upload" accept=".csv" class="hidden">
+        </div>
+    </header>
+
+    <!-- Notification Area -->
+    <div id="notification" class="hidden absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg text-sm font-medium transition-all">
+        数据加载成功！
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-6 bg-slate-50">
+        
+        <!-- Empty State / Upload Area -->
+        <div id="empty-state" class="flex flex-col items-center justify-center h-full text-center max-w-2xl mx-auto mt-10">
+            <div class="w-48 h-48 mb-6">
+                <svg class="w-full h-full text-blue-100" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-700 mb-2">等待数据源</h2>
+            <p class="text-slate-500 mb-8">请点击右上角上传您的 `.csv` 报表文件，或者加载示例数据以预览分析看板的效果。数据将在您的浏览器本地进行安全解析。</p>
+            
+            <div class="flex gap-4">
+                <label for="csv-upload-large" class="cursor-pointer px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium rounded-xl transition-colors shadow-md">
+                    选择文件并分析
+                </label>
+                <input type="file" id="csv-upload-large" accept=".csv" class="hidden">
+            </div>
+        </div>
+
+        <!-- Dashboard Content (Hidden by default) -->
+        <div id="dashboard-content" class="hidden max-w-7xl mx-auto space-y-6">
+            
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">总计覆盖品牌数</p>
+                        <h3 id="kpi-brands" class="text-3xl font-bold text-slate-800">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
+                        <i class="fa-solid fa-tags text-xl"></i>
+                    </div>
+                </div>
+                <!-- Card 2 -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">累计配置支付方式</p>
+                        <h3 id="kpi-payments" class="text-3xl font-bold text-slate-800">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500">
+                        <i class="fa-solid fa-credit-card text-xl"></i>
+                    </div>
+                </div>
+                <!-- Card 3 -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">活跃品牌 (已启用)</p>
+                        <h3 id="kpi-active-brands" class="text-3xl font-bold text-emerald-600">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500">
+                        <i class="fa-solid fa-circle-check text-xl"></i>
+                    </div>
+                </div>
+                <!-- Card 4 -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">活跃支付 (已启用)</p>
+                        <h3 id="kpi-active-payments" class="text-3xl font-bold text-purple-600">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center text-purple-500">
+                        <i class="fa-solid fa-wallet text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Bar Chart -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-bold text-slate-800 mb-1">品牌接入支付方式数量 Top 10</h3>
+                    <p class="text-xs text-slate-500 mb-4">按品牌配置的支付渠道数排名</p>
+                    <div class="chart-container">
+                        <canvas id="chart-brands"></canvas>
+                    </div>
+                </div>
+                <!-- Doughnut Chart -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-bold text-slate-800 mb-1">支付方式应用热度</h3>
+                    <p class="text-xs text-slate-500 mb-4">不同支付方式在各品牌中的使用频次分布</p>
+                    <div class="chart-container">
+                        <canvas id="chart-payments"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 2 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Line Chart -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2">
+                    <h3 class="text-lg font-bold text-slate-800 mb-1">配置接入时间趋势</h3>
+                    <p class="text-xs text-slate-500 mb-4">按月份统计的新增配置条目数量</p>
+                    <div class="chart-container">
+                        <canvas id="chart-trend"></canvas>
+                    </div>
+                </div>
+                <!-- Pie Chart for Status -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-bold text-slate-800 mb-1">支付配置健康度</h3>
+                    <p class="text-xs text-slate-500 mb-4">所有配置记录中启用与未启用的比例</p>
+                    <div class="chart-container">
+                        <canvas id="chart-status"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pb-10"></div>
+        </div>
+    </main>
+
+    <!-- Script Logic -->
+    <script>
+        // Store Chart instances for destroying before re-render
+        let charts = {
+            brands: null,
+            payments: null,
+            trend: null,
+            status: null
+        };
+
+        // UI Elements
+        const emptyState = document.getElementById('empty-state');
+        const dashboardContent = document.getElementById('dashboard-content');
+        const notification = document.getElementById('notification');
+
+        // File Inputs
+        document.getElementById('csv-upload').addEventListener('change', handleFileUpload);
+        document.getElementById('csv-upload-large').addEventListener('change', handleFileUpload);
+        document.getElementById('btn-demo').addEventListener('click', loadDemoData);
+
+        // Chart default settings
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748b';
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+        function showNotification(msg, isError = false) {
+            notification.textContent = msg;
+            notification.className = `absolute top-6 left-1/2 transform -translate-x-1/2 z-50 text-white px-6 py-3 rounded-full shadow-lg text-sm font-medium transition-all duration-300 ${isError ? 'bg-red-500' : 'bg-slate-800'}`;
+            notification.classList.remove('hidden');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if(results.data && results.data.length > 0) {
+                        processData(results.data);
+                        showNotification(`成功加载 ${results.data.length} 条数据！`);
+                    } else {
+                        showNotification('解析失败，CSV似乎为空', true);
+                    }
+                },
+                error: function(err) {
+                    showNotification('文件读取失败', true);
+                }
+            });
+            // Reset input so the same file can be selected again
+            event.target.value = '';
+        }
+
+        function loadDemoData() {
+            // Built-in demo data based on user snippet
+            const csvText = `brand_id,brand_name,create_time,品牌数据是否启用,payment_method_name,支付方式是否启用
+2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Coinpal- Gift Card,1
+2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,LinkAja wallet,1
+2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Doku ovo wallet,1
+2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Glocash_Ppro_Bancontact_iGV,1
+2.05264E+18,Paysera Rewarble,2026-05-08T07:00:51,1,Glocash_Ppro_WeChatPay_iGV,1
+2.05228E+18,Claude,2026-05-07T06:42:50,1,Coinpal- Gift Card,1
+2.05228E+18,Claude,2026-05-07T06:42:50,1,LinkAja wallet,1
+115,World Of Warcraft US,2019-04-12T15:13:08,1,ApplePay,1
+115,World Of Warcraft US,2019-04-12T15:13:08,1,Epay-FPX-HongLeongBank,0
+115,World Of Warcraft US,2019-04-12T15:13:08,1,Bcashy,0
+115,World Of Warcraft US,2019-04-12T15:13:08,1,Epay-FPX-AmBank,0
+59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Epay-FPX-HongLeongBank,0
+59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Bcashy,0
+59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Glocash_Ppro_WeChatPay_iGV,1
+59,World Of Warcraft Europe,2019-04-04T08:51:34,1,Epay-FPX-UOBBank,0
+60,Blizzard Store,2020-01-10T10:00:00,0,ApplePay,1
+60,Blizzard Store,2020-01-10T10:00:00,0,Bcashy,0`;
+
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processData(results.data);
+                    showNotification('示例数据加载完成！');
+                }
+            });
+        }
+
+        function processData(data) {
+            // Data aggregations
+            const brandsSet = new Set();
+            const paymentsSet = new Set();
+            const activeBrandsSet = new Set();
+            const activePaymentsSet = new Set();
+
+            const brandPaymentCount = {};
+            const paymentUsageCount = {};
+            const trendData = {};
+            let statusEnabled = 0;
+            let statusDisabled = 0;
+
+            data.forEach(row => {
+                const bName = row['brand_name'] || 'Unknown';
+                const pName = row['payment_method_name'] || 'Unknown';
+                const bActive = String(row['品牌数据是否启用']).trim() === '1';
+                const pActive = String(row['支付方式是否启用']).trim() === '1';
+                const cTime = row['create_time'] ? row['create_time'].substring(0, 7) : 'Unknown';
+
+                // Basic sets
+                brandsSet.add(bName);
+                paymentsSet.add(pName);
+                if(bActive) activeBrandsSet.add(bName);
+                if(pActive) activePaymentsSet.add(pName);
+
+                // Brand counting
+                if (!brandPaymentCount[bName]) brandPaymentCount[bName] = 0;
+                brandPaymentCount[bName]++;
+
+                // Payment counting
+                if (!paymentUsageCount[pName]) paymentUsageCount[pName] = 0;
+                paymentUsageCount[pName]++;
+
+                // Trend counting
+                if (cTime !== 'Unknown') {
+                    if (!trendData[cTime]) trendData[cTime] = 0;
+                    trendData[cTime]++;
+                }
+
+                // Status counting (Combined health)
+                if (bActive && pActive) statusEnabled++;
+                else statusDisabled++;
+            });
+
+            // Update UI KPIs
+            document.getElementById('kpi-brands').textContent = brandsSet.size;
+            document.getElementById('kpi-payments').textContent = paymentsSet.size;
+            document.getElementById('kpi-active-brands').textContent = activeBrandsSet.size;
+            document.getElementById('kpi-active-payments').textContent = activePaymentsSet.size;
+
+            // Sort data for charts
+            const topBrands = Object.entries(brandPaymentCount).sort((a,b) => b[1] - a[1]).slice(0, 10);
+            const topPayments = Object.entries(paymentUsageCount).sort((a,b) => b[1] - a[1]).slice(0, 10);
+            const sortedTrends = Object.entries(trendData).sort((a,b) => a[0].localeCompare(b[0]));
+
+            // Render Charts
+            renderCharts({
+                brands: topBrands,
+                payments: topPayments,
+                trend: sortedTrends,
+                status: [statusEnabled, statusDisabled]
+            });
+
+            // Toggle Visibility
+            emptyState.classList.add('hidden');
+            dashboardContent.classList.remove('hidden');
+        }
+
+        function renderCharts(metrics) {
+            // Colors
+            const primaryColors = ['#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#0ea5e9'];
+            
+            // 1. Brands Bar Chart
+            if (charts.brands) charts.brands.destroy();
+            const ctxBrands = document.getElementById('chart-brands').getContext('2d');
+            charts.brands = new Chart(ctxBrands, {
+                type: 'bar',
+                data: {
+                    labels: metrics.brands.map(d => d[0]),
+                    datasets: [{
+                        label: '配置支付方式数量',
+                        data: metrics.brands.map(d => d[1]),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6,
+                        barThickness: 'flex',
+                        maxBarThickness: 40
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [2, 4] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // 2. Payments Doughnut Chart
+            if (charts.payments) charts.payments.destroy();
+            const ctxPayments = document.getElementById('chart-payments').getContext('2d');
+            charts.payments = new Chart(ctxPayments, {
+                type: 'doughnut',
+                data: {
+                    labels: metrics.payments.map(d => d[0]),
+                    datasets: [{
+                        data: metrics.payments.map(d => d[1]),
+                        backgroundColor: primaryColors,
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, font: {size: 11} } }
+                    }
+                }
+            });
+
+            // 3. Trend Line Chart
+            if (charts.trend) charts.trend.destroy();
+            const ctxTrend = document.getElementById('chart-trend').getContext('2d');
+            
+            // Create Gradient
+            const gradient = ctxTrend.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+            charts.trend = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: metrics.trend.map(d => d[0]),
+                    datasets: [{
+                        label: '新增配置记录数',
+                        data: metrics.trend.map(d => d[1]),
+                        borderColor: '#6366f1',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#6366f1',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [2, 4] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // 4. Status Pie Chart
+            if (charts.status) charts.status.destroy();
+            const ctxStatus = document.getElementById('chart-status').getContext('2d');
+            charts.status = new Chart(ctxStatus, {
+                type: 'pie',
+                data: {
+                    labels: ['正常 (品牌及支付均启用)', '异常/未完全启用'],
+                    datasets: [{
+                        data: metrics.status,
+                        backgroundColor: ['#10b981', '#f43f5e'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
